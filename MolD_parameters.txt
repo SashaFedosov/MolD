@@ -1,6 +1,6 @@
 #############SET INPUT AND OUTPUT FILES (INCLUDING COMPLETE PATH)
-INPUT_FILE=D:\Odonata_Sp_COI_541.txt
-OUTPUT_FILE=D:\Odonata_Sp_COI_541_pout.txt
+INPUT_FILE=D:\Conidae_COI_genera_example.txt
+OUTPUT_FILE=D:\Conidae_COI_genera_example.out
 
 #############SET TAXON PARAMETERS (NO DEFAULTS, no parameters entered will lead to an error).
 #Set list of the focus taxa (enter a comma separated list WITHOUT SPACES)
@@ -9,7 +9,7 @@ OUTPUT_FILE=D:\Odonata_Sp_COI_541_pout.txt
 qTAXA=ALL
 
 #Set taxon rank: if species - 1, if above species - 2.
-Taxon_rank=1
+Taxon_rank=2
 
 #############SET ADVANCED PARAMETERS FOR pDNC RECOVERY. If you don't want to set them, don't enter anything after '='
 #Set number of the informative positions to be considered (default 100)
@@ -44,4 +44,4 @@ NMaxSeq=
 #moderate: 85
 #stringent: 90
 #very_stringent: 97
-Scoring=very_stringent
+Scoring=moderate
