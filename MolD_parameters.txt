@@ -34,7 +34,7 @@ Pdiff=
 #Set proportion of sequences in the dataset to be modified (default 0.5 for species-level, and 0.1 for supraspecific taxa).
 PrSeq=
 
-#Set max number of sequences per taxon to modify (default 20)
+#Set max number of sequences per taxon to modify (default 10)
 NMaxSeq=
 
 #Set threshold of sDNC rating(default stringent).
