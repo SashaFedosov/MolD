@@ -1,9 +1,24 @@
-"""
-This script compiles sDNC-based DNA diagnoses for a pre-defined taxa in a dataset
-"""
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import os, sys
 import random
 import argparse
+import os
+from io import StringIO
+
+"""
+This script compiles sDNC-based DNA diagnoses for a pre-defined taxa in a dataset
+"""
+
+
+###################################################IMPLEMENTATION
+#Setting up a new class just for the convenient output formatting
+class SortedDisplayDict(dict):#this is only to get a likable formatting of the barcode
+    def __str__(self):
+        return "[" + ", ".join("%r: %r" % (key, self[key]) for key in sorted(self)) + "]"
+
+
 ######################################################################## FUNCTIONS
 #***STEP 1 - SORTING ENTRIES BY CLADE AND IDENTIFYING NUCLEOTIDE POSITIONS SHARED WITHIN CLADE
 def Step1(raw_records):
@@ -43,6 +58,8 @@ def C_VP_PP(clade_sorted_seqs, clade, shared_positions, CUTOFF):# complist_varia
         if key != clade:
             complist = complist + clade_sorted_seqs[key]#creates a list of all other sequences for comparison
     cutoffs = {}
+    pures = []
+
     for key in CShN:
         newcomplist = []
         for k in complist:
@@ -50,13 +67,16 @@ def C_VP_PP(clade_sorted_seqs, clade, shared_positions, CUTOFF):# complist_varia
                 newcomplist.append(k)
             else: continue
         cutoffs[key] = len(complist) - len(newcomplist)
+        if len(newcomplist) == 0:
+            pures.append(key)
+
     CPP = []
     for key in sorted(cutoffs, key = cutoffs.get, reverse = True):
         CPP.append(key)
     Clade_priority_positions = {}
     for position in CPP[:CUTOFF]:#Here you define how many of the clade shared combinations are used in subsequent search
         Clade_priority_positions[position] = CShN[position]
-    return complist, Clade_priority_positions, cutoffs
+    return complist, Clade_priority_positions, cutoffs, pures
 
 #***STEPS 3 RANDOM SEARCH ACROSS PRIORITY POSITIONS TO FIND RAW DIAGNOSTIC COMBINATIONS AND TO SUBSEQUENTLY REFINE THEM
 def random_position(somelist, checklist):#gives a random index (integer) of the specified range, and returns indexed somelist element if it is not present in the checklist 
@@ -161,8 +181,9 @@ def IndependentKey(diagnostic_combinations):#PRESENTLY NOT INVOLVED - returns in
 
 #SPECIFIC FUNCTIONS FOR THE sDNCs
 def random_sequence2(SEQ, Pdiff, key_pos):#Returns a string (DNA sequence) that is Pdiff% different from the input string. Argument: string, integer (%), list. This and subsequent functions are only used for sDNC-based diagnoses
-    N = len(SEQ)*Pdiff/100
-    PosToChange = random.sample(range(0, len(SEQ)), N)
+    N = round(len(SEQ)*Pdiff/100)
+    #print(["N", N, len(SEQ), Pdiff])
+    PosToChange = random.sample(list(range(0, len(SEQ))), N)
     Nucleotides = ['A', 'C', 'G', 'T']
     NEWSEQ = ''
     for i in range(len(SEQ)):
@@ -198,7 +219,7 @@ def GenerateBarcode2(Diagnostic_combinations, length):#This function calculates 
 def Screwed_dataset31(dataset, Taxon, sp_per_clade_to_screw, Prop_to_screw, key_pos, Percent_difference, Cutoff):#implements a random_sequence function to build a random sequence dataset where 10% sequences of the dataset (but not more than 20 species per clade) are Pdiff percent different from the original one. Arguments: list, string, list, list.
     Pdiff_records=[]
     screwed_clades = {}
-    seq_to_screw = random.sample(range(len(dataset)), int(len(dataset)*Prop_to_screw))
+    seq_to_screw = random.sample(list(range(len(dataset))), int(len(dataset)*Prop_to_screw))
     for i in range(len(dataset)):
         if i in seq_to_screw:
             clade_record = dataset[i][1]
@@ -217,7 +238,7 @@ def Screwed_dataset31(dataset, Taxon, sp_per_clade_to_screw, Prop_to_screw, key_
             Pdiff_records.append(dataset[i])
                 
     Clades, clade_sorted_seqs, shared_positions = Step1(Pdiff_records)
-    x,y,z = C_VP_PP(clade_sorted_seqs, Taxon, shared_positions, Cutoff)#STEP2
+    x,y,z,pures = C_VP_PP(clade_sorted_seqs, Taxon, shared_positions, Cutoff)#STEP2
     return x, y
 
 ################################################READ IN PARAMETER FILE AND DATA FILE
@@ -228,31 +249,48 @@ def get_args(): #arguments needed to give to this script
     required.add_argument("-i", help="textfile with parameters of the analysis", required=True)
     return parser.parse_args()
 
-def main():
-    args = get_args()
+def mainprocessing(taxalist=None, taxonrank=None, cutoff=None, numnucl=None, numiter=None, maxlenraw=None, maxlenrefined=None, pdiff=None, prseq=None, nmax=None, thresh=None, tmpfname=None):
+    
     ParDict = {}
-    with open(args.i) as params:
-        for line in params:
-            line = line.strip()
-            if line.startswith('#'):
-                pass
-            else:
-                if len(line.split('=')) == 2 and len(line.split('=')[1]) != 0:
-                    ParDict[line.split('=')[0]] = line.split('=')[1]
-
+    
+    if not(all([taxalist, taxonrank, cutoff, numnucl, numiter, maxlenraw, maxlenrefined, pdiff, prseq, nmax, thresh, tmpfname])):
+        args = get_args()
+        with open(args.i) as params:
+            for line in params:
+                line = line.strip()
+                if line.startswith('#'):
+                    pass
+                else:
+                    if len(line.split('=')) == 2 and len(line.split('=')[1]) != 0:
+                        ParDict[line.split('=')[0]] = line.split('=')[1]
+                        ParDict['output'] = "file"
+    else:
+        ParDict['qTAXA'] = taxalist
+        ParDict['Taxon_rank'] = taxonrank
+        ParDict['INPUT_FILE'] = tmpfname
+        ParDict['Cutoff'] = cutoff
+        ParDict['NumberN'] = numnucl
+        ParDict['Number_of_iterations'] = numiter
+        ParDict['MaxLen1'] = maxlenraw
+        ParDict['MaxLen2'] = maxlenrefined
+        ParDict['Pdiff'] = pdiff
+        ParDict['PrSeq'] = prseq
+        ParDict['NMaxSeq'] = nmax
+        ParDict['Scoring'] = thresh
+        ParDict['OUTPUT_FILE'] = "str"        
     f = open(ParDict['INPUT_FILE'], 'r') 
     imported=[]#set up a new dictionary with species and identifiers
     for line in f:
         line=line.rstrip()
         words=line.split()
         if len(words) != 3:
-            print 'Check number of entries in', words[0]
+            print('Check number of entries in', words[0])
             #break
         else:
             imported.append([words[0], words[1], words[2].upper()])
     f.close()
     if len(set([len(i[2]) for i in imported])) != 1:
-        print 'Alignment contains sequences of different lengths:', set([len(i[2]) for i in imported])
+        print('Alignment contains sequences of different lengths:', set([len(i[2]) for i in imported]))
     else:
         FragmentLen = len(imported[0][2])
     if 'NumberN' in list(ParDict.keys()):#How many ambiguously called nucleotides are allowed
@@ -263,9 +301,9 @@ def main():
     for i in imported:
         if i[2].count('N') < NumberN and len(i[2]) == FragmentLen:
             raw_records.append(i)
-    print 'Maximum undetermined nucleotides allowed:', NumberN
-    print 'Length of the alignment:', FragmentLen    
-    print 'Read in', len(raw_records), 'sequences'
+    print('Maximum undetermined nucleotides allowed:', NumberN)
+    print('Length of the alignment:', FragmentLen)    
+    print('Read in', len(raw_records), 'sequences')
    
     #############################################READ IN OTHER ANALYSIS PARAMETERS
     if ParDict['qTAXA'] in ['ALL', 'All', 'all']:#qTAXA
@@ -282,36 +320,36 @@ def main():
                 qCLADEs.append(j)
     else:
         qCLADEs = ParDict['qTAXA'].split(',')
-    print 'focus taxa:', qCLADEs, len(qCLADEs)
+    print('focus taxa:', qCLADEs, len(qCLADEs))
 
     if 'Cutoff' in list(ParDict.keys()):#CUTOFF Number of the informative positions to be considered, default 100
         Cutoff = int(ParDict['Cutoff'])
     else:
         Cutoff = 100
-    print 'Cutoff set as:', Cutoff
+    print('Cutoff set as:', Cutoff)
     if 'Number_of_iterations' in list(ParDict.keys()):#Number iterations of MolD
         N1 = int(ParDict['Number_of_iterations'])
     else:
         N1 = 10000
-    print 'Number iterations of MolD set as:', N1
+    print('Number iterations of MolD set as:', N1)
     
     if 'MaxLen1' in list(ParDict.keys()):#Maximum length for the raw pDNCs
         MaxLen1 = int(ParDict['MaxLen1'])
     else:
         MaxLen1 = 12
-    print 'Maximum length of raw pDNCs set as:', MaxLen1
+    print('Maximum length of raw pDNCs set as:', MaxLen1)
     
     if 'MaxLen2' in list(ParDict.keys()):#Maximum length for the refined pDNCs
         MaxLen2 = int(ParDict['MaxLen2'])
     else:
         MaxLen2 = 7
-    print 'Maximum length of refined pDNCs set as:', MaxLen2
+    print('Maximum length of refined pDNCs set as:', MaxLen2)
     
     if int(ParDict['Taxon_rank']) == 1:#read in taxon rank to configure Pdiff parameter of artificial dataset
         Percent_difference = 1
     else:
         Percent_difference = 3
-    print Percent_difference
+    print(Percent_difference)
     
     if 'PrSeq' in list(ParDict.keys()):#Proportion of sequences in the dataset to be modified for the artificial dataset construction
         P_to_screw = float(ParDict['PrSeq'])
@@ -322,51 +360,50 @@ def main():
             P_to_screw = 0.5
         else:
             P_to_screw = 0.1
-    print P_to_screw
+    print(P_to_screw)
     
     if 'NMaxSeq' in list(ParDict.keys()):#Maximum number of sequences per taxon to be modified
         Seq_per_clade_to_screw = int(ParDict['NMaxSeq'])
     else:
         Seq_per_clade_to_screw = 20
-    print Seq_per_clade_to_screw
+    print(Seq_per_clade_to_screw)
     
     if 'Scoring' in list(ParDict.keys()):
-        if ParDict['Scoring'] == 'lousy':
-            threshold = 75
-        elif ParDict['Scoring'] == 'moderate':
-            threshold = 85
-        elif ParDict['Scoring'] == 'stringent':
-            threshold = 90
-        elif ParDict['Scoring'] == 'very_stringent':
-            threshold = 97
-        else:
-            threshold = 90
+        #if ParDict['Scoring'] == 'lousy':
+        threshold = int(ParDict['Scoring'])
+        #elif ParDict['Scoring'] == 'moderate':
+        #    threshold = 85
+        #elif ParDict['Scoring'] == 'stringent':
+        #    threshold = 90
+        #elif ParDict['Scoring'] == 'very_stringent':
+        #    threshold = 97
+        #else:
+        #    threshold = 90
     else:
         threshold = 90
-    print 'Scoring of the sDNCs:', ParDict['Scoring'], 'Threshold in two consequtive runs:', threshold
-    
-    ###################################################IMPLEMENTATION
-    #Setting up a new class just for the convenient output formatting
-    class SortedDisplayDict(dict):#this is only to get a likable formatting of the barcode
-        def __str__(self):
-            return "[" + ", ".join("%r: %r" % (key, self[key]) for key in sorted(self)) + "]"
+    print('Scoring of the sDNCs:', ParDict['Scoring'], 'Threshold in two consequtive runs:', threshold)
     
     #Calling functions and outputing results
-    g = open(ParDict['OUTPUT_FILE'], "w")#Initiating output file
+    if ParDict['OUTPUT_FILE'] == "str":
+        g = StringIO()
+    else:
+        g = open(ParDict['OUTPUT_FILE'], "w")#Initiating output file
+        
     for qCLADE in qCLADEs:
-        print '**************', qCLADE, '**************'
-        print >>g, '**************', qCLADE, '**************'
+        print('**************', qCLADE, '**************')
+        print('<h4>**************', qCLADE, '**************</h4>', file=g)
         Clades, clade_sorted_seqs, shared_positions = Step1(raw_records)#STEP1
-        x,y,z = C_VP_PP(clade_sorted_seqs, qCLADE, shared_positions, Cutoff)#STEP2
-        print 'Sequences analyzed:', len(clade_sorted_seqs[qCLADE])
-        print >>g, 'Sequences analyzed:', len(clade_sorted_seqs[qCLADE])
-        ND_combinations= []
-        N = 5
+        x,y,z,pures = C_VP_PP(clade_sorted_seqs, qCLADE, shared_positions, Cutoff)#STEP2
+        newy = {key:y[key] for key in y if not key in pures}
+        print('Sequences analyzed:', len(clade_sorted_seqs[qCLADE]))
+        print('Sequences analyzed:', len(clade_sorted_seqs[qCLADE]), "<br>", file=g)
+        ND_combinations = [[item] for item in pures]
+        N = 1
         while N > 0:#STEP3
             try:
-                q = Diagnostic_combinations(qCLADE, x, y, N1, MaxLen1, MaxLen2)
+                q = Diagnostic_combinations(qCLADE, x, newy, N1, MaxLen1, MaxLen2)
             except IndexError:
-                print N, 'IndexError'
+                print(N, 'IndexError')
                 continue
             for comb in q:
                 if not comb in ND_combinations:
@@ -377,42 +414,56 @@ def main():
         try:
             Nind, KeyPos = IndependentKey(ND_combinations)#STEP4
         except IndexError:
-            print qCLADE, 'no pDNCs recovered for', qCLADE
+            print(qCLADE, 'no pDNCs recovered for', qCLADE)
             continue
         Allpos = []#Create list of all positions involved in pDNCs
         for comb in ND_combinations:
             for pos in comb:
                 if not pos in Allpos:
                     Allpos.append(pos)
-        print 'pDNCs retrieved :', len(ND_combinations), 'Positions involved:', len(Allpos), 'Independent pDNCs:', len(Nind)
-        print >>g, 'pDNCs retrieved :', len(ND_combinations), 'Positions involved:', len(Allpos), 'Independent pDNCs:', len(Nind)
-        print 'Shortest retrieved diagnostic combination:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in ND_combinations[0]]})
-        print >>g, 'Shortest retrieved diagnostic combination:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in ND_combinations[0]]})
+        print('pDNCs retrieved :', len(ND_combinations), 'Positions involved:', len(Allpos), 'Independent pDNCs:', len(Nind))
+        print('pDNCs retrieved :', len(ND_combinations), 'Positions involved:', len(Allpos), 'Independent pDNCs:', len(Nind), "<br>", file=g)
+        print('Shortest retrieved diagnostic combination:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in ND_combinations[0]]}))
+        print('Shortest retrieved diagnostic combination:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in ND_combinations[0]]}),  "<br>", file=g)
         ######################################################## sDNC output
         Barcode_scores = []#Initiate a list for sDNC scores
         npos = len(ND_combinations[0])
-        while npos <= min([25, len(Allpos)]):#in this loop the positions are added one-by-one to a sDNC and the sDNC is then rated on the artificially generated datasets
+        BestBarcode = 'none'
+        while npos <= min([10, len(Allpos)]):#in this loop the positions are added one-by-one to a sDNC and the sDNC is then rated on the artificially generated datasets
             Barcode = GenerateBarcode2(ND_combinations, npos)#Initiate a sDNC
             Barcode_score = 0#Initiate a score to rate a sDNC
             N = 100
             while N > 0:
                 NComplist, NCPP = Screwed_dataset31(raw_records, qCLADE, Seq_per_clade_to_screw, P_to_screw, KeyPos, Percent_difference, Cutoff)#Create an artificial dataset
                 NBarcode = [i for i in Barcode if i in list(NCPP.keys())]
-                if ConditionD(NBarcode, NComplist, NCPP) == True:#Check whether the sDNC works for the artificial dataset
+                if len(Barcode) - len(NBarcode) <= 1 and ConditionD(NBarcode, NComplist, NCPP) == True:####! new condition (first) added
                     Barcode_score +=1
                 N -=1
-            print npos, 'sDNC_score (100):', Barcode_score
-            print >>g, npos, 'sDNC_score (100):', Barcode_score
+            print(npos, 'sDNC_score (100):', Barcode_score)
+            print(npos, 'sDNC_score (100):', Barcode_score,  "<br>", file=g)
             Barcode_scores.append(Barcode_score)
+            if Barcode_score >= threshold and len(Barcode_scores) >=2 and Barcode_score >= Barcode_scores[-2]:
+                BestBarcode = Barcode
             if len(Barcode_scores) >= 3 and Barcode_scores[-1] >= threshold and Barcode_scores[-2] >= threshold:#Check whether the sDNC fulfills robustnes criteria 85:85:85
-                print 'final sDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in Barcode]}), '\n'
-                print >>g, 'final sDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in Barcode]}), '\n'
+                print('final sDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in Barcode]}), '\n')
+                print('final sDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in Barcode]}), '<br>', file=g)
                 break
             else:
                 npos += 1
-                if npos > min([25, len(Allpos)]):
-                    print 'No credible diagnosis was retrieved\n'
-                    print >>g, 'No credible diagnosis was retrieved\n'
+                if npos > min([10, len(Allpos)]):
+                    print('No credible diagnosis was retrieved\n')
+                    print('No credible diagnosis was retrieved<br>', file=g)
+                    print('The highest scoring sDNC:', BestBarcode, '\n')
+                    print('The highest scoring sDNC:', BestBarcode, '<br>', file=g)
+
+    if ParDict['OUTPUT_FILE'] == "str":
+        contents = g.getvalue()
+        os.unlink(ParDict['INPUT_FILE'])
+    else:
+        contents = None
     g.close()
+    
+    return contents, qCLADEs
+
 if __name__ == "__main__":
-	main()
+	mainprocessing()

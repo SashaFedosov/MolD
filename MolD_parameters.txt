@@ -2,6 +2,9 @@
 INPUT_FILE=D:\Conidae_COI_genera_example.txt
 OUTPUT_FILE=D:\Conidae_COI_genera_example.out
 
+#Code gaps as characters: 'yes' or 'no'
+Gaps_as_chars=no
+
 #############SET TAXON PARAMETERS (NO DEFAULTS, no parameters entered will lead to an error).
 #Set list of the focus taxa (enter a comma separated list WITHOUT SPACES)
 #or if each taxon is to be diagnosed, enter 'ALL'
@@ -9,39 +12,40 @@ OUTPUT_FILE=D:\Conidae_COI_genera_example.out
 qTAXA=ALL
 
 #Set taxon rank: if species - 1, if above species - 2.
-Taxon_rank=2
+Taxon_rank=1
 
 #############SET ADVANCED PARAMETERS FOR pDNC RECOVERY. If you don't want to set them, don't enter anything after '='
 #Set number of the informative positions to be considered (default 100)
-Cutoff=
+# By entering '>0' all informative positions will be selected
+Cutoff=>1
 
-#Set how many ambiguously called nucleotides are allowed (default 5)
-NumberN=
+#Set how many ambiguously called nucleotides are allowed (default 25)
+NumberN=25
 
 #Set number recursions of MolD (default 10000)
-Number_of_iterations=
+Number_of_iterations=20000
 
 #Set maximum length for the raw pDNCs (defailt 12)
 MaxLen1=
 
 #Set maximum length for the refined pDNCs (default 7)
-MaxLen2=
+MaxLen2=5
 
 ############ SET PARAMETERS OF ARTIFICIAL DATASETS (only sDNSs).
 #Set percent difference between original and modified sequence (default 1 for species-level taxa, 3 for for supraspecific taxa).
-Pdiff=
+Pdiff=1
 
-#Set proportion of sequences in the dataset to be modified (default 0.5 for species-level, and 0.1 for supraspecific taxa).
-PrSeq=
+#Set proportion of sequences in the dataset to be modified (default 0.5 for species-level, and 0.1 f#or supraspecific taxa).
+#PrSeq=
 
-#Set max number of sequences per taxon to modify (default 20)
-NMaxSeq=
+#Set max number of sequences per taxon to modify (default 10)
+NMaxSeq=10
 
 #Set threshold of sDNC rating(default stringent).
 #100 artificial datasets are created to score the sDNC. If the sDNC remains diagnostic in  requested (defined by value of threshold),
 #or higher number of artificial datasets in two consequtive runs, then sDNC is output. The threshold values are like:
-#lousy: 75
-#moderate: 85
+#lousy: 66
+#moderate: 75
 #stringent: 90
-#very_stringent: 97
+#very_stringent: 95
 Scoring=moderate
