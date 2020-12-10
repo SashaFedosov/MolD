@@ -1,5 +1,5 @@
 """
-This script compiles sDNC-based DNA diagnoses for a pre-defined taxa in a dataset. This is the MAIN WORKING VERSION
+This script compiles rDNC-based DNA diagnoses for a pre-defined taxa in a dataset. This is the MAIN WORKING VERSION
 
 """
 import os, sys
@@ -121,21 +121,29 @@ def Diagnostic_combinations(qCLADE, complist, CPP, n1, maxlen1, maxlen2):
     bestlists = []
     n = n1
     while n>0:#STEP3 proposes raw diagnostic combinations
-        m = step_reduction_complist(qCLADE, complist, CPP, Achecked_ind)
-        if len(m) < maxlen1 and sorted(m) not in bestlists:
-            bestlists.append(sorted(m))
+        raw_comb = step_reduction_complist(qCLADE, complist, CPP, Achecked_ind)
+        if len(raw_comb) <= maxlen1:
+            refined_comb = RemoveRedundantPositions(raw_comb, complist, CPP)
+            if len(refined_comb) <= maxlen2 and sorted(refined_comb) not in bestlists:
+                bestlists.append(sorted(refined_comb))
         n=n-1
     bestlists.sort(key=len)
-    priority_lists = bestlists#VERYNEW
-    diagnostic_combinations = []
-    for raw_comb in priority_lists:
-        refined_comb = RemoveRedundantPositions(raw_comb, complist, CPP)
-        if not refined_comb in diagnostic_combinations and len(refined_comb) <= maxlen2:
-            diagnostic_combinations.append(refined_comb)
-    diagnostic_combinations.sort(key=len)
-    return diagnostic_combinations
+    #while n>0:#STEP3 proposes raw diagnostic combinations
+    #    m = step_reduction_complist(qCLADE, complist, CPP, Achecked_ind)
+    #    if len(m) < maxlen1 and sorted(m) not in bestlists:
+    #        bestlists.append(sorted(m))
+    #    n=n-1
+    #bestlists.sort(key=len)
+    #priority_lists = bestlists#VERYNEW
+    #diagnostic_combinations = []
+    #for raw_comb in priority_lists:
+    #    refined_comb = RemoveRedundantPositions(raw_comb, complist, CPP)
+    #    if not refined_comb in diagnostic_combinations and len(refined_comb) <= maxlen2:
+    #        diagnostic_combinations.append(refined_comb)
+    #diagnostic_combinations.sort(key=len)
+    return bestlists
 
-#***STEP 4 ANALYSIS OF OUTPUT sDNCs
+#***STEP 4 ANALYSIS OF OUTPUT rDNCs
 def IndependentKey(diagnostic_combinations):#PRESENTLY NOT INVOLVED - returns independent diagnostic nucleotide combinations, and identifies key nucleotide positions
     independent_combinations = []
     selected_positions = []
@@ -167,7 +175,7 @@ def IndependentKey(diagnostic_combinations):#PRESENTLY NOT INVOLVED - returns in
             key_positions.append(pos)
     return independent_combinations, key_positions
 
-#SPECIFIC FUNCTIONS FOR THE sDNCs
+#SPECIFIC FUNCTIONS FOR THE rDNCs
 def PositionArrays(Motifs):#VERYNEW ALL FUNCTION NEW
     PositionArrays = []
     VarPosList = []
@@ -185,8 +193,8 @@ def PositionArrays(Motifs):#VERYNEW ALL FUNCTION NEW
     return PositionArrays, VarPosList
 
 def random_sequence_new(SEQ, PositionArrays, VarPosList, Pdiff):#VERYNEW FUNCTION REVISED
+    #print(["ROUND", len(SEQ)*Pdiff/100, round(len(SEQ)*Pdiff/100)])
     n = round(len(SEQ)*Pdiff/100)
-    
     N = random.sample(list(range(1, n)), 1)[0]
     PosToChange = random.sample([p for p in VarPosList if SEQ[p] != 'D'], N)#this is a new definition to keep alignment gaps unchanged
     NEWSEQ = ''
@@ -288,7 +296,7 @@ def get_args(): #arguments needed to give to this script
     required.add_argument("-i", help="textfile with parameters of the analysis", required=True)
     return parser.parse_args()
 
-def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None, numnucl=None, numiter=None, maxlenraw=None, maxlenrefined=None, pdiff=None, nmax=None, thresh=None, tmpfname=None):
+def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None, numnucl=None, numiter=None, maxlenraw=None, maxlenrefined=None, pdiff=None, nmax=None, thresh=None, tmpfname=None, origfname=None):
     ParDict = {}
     if not(all([gapsaschars, taxalist, taxonrank, cutoff, numnucl, numiter, maxlenraw, maxlenrefined, pdiff, nmax, thresh, tmpfname])):
         args = get_args()
@@ -305,6 +313,7 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
         ParDict['qTAXA'] = taxalist
         ParDict['Taxon_rank'] = taxonrank
         ParDict['INPUT_FILE'] = tmpfname
+        ParDict['ORIG_FNAME'] = origfname
         ParDict['Cutoff'] = cutoff
         ParDict['NumberN'] = numnucl
         ParDict['Number_of_iterations'] = numiter
@@ -358,7 +367,7 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
         if i[2].count('N') < NumberN and len(i[2]) == FragmentLen:
             raw_records.append(i)
     print('\n########################## PARAMETERS ######################\n')#VERYNEW
-    print('input file:', ParDict['INPUT_FILE']) #VERYNEW
+    print('input file:', ParDict['ORIG_FNAME']) #VERYNEW
     print('Coding gaps as characters:', gaps2D)
     print('Maximum undetermined nucleotides allowed:', NumberN)
     print('Length of the alignment:', FragmentLen)    
@@ -400,13 +409,13 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
         MaxLen1 = int(ParDict['MaxLen1'])
     else:
         MaxLen1 = 12
-    print('Maximum length of raw pDNCs set as:', MaxLen1)
+    print('Maximum length of raw mDNCs set as:', MaxLen1)
     
     if 'MaxLen2' in list(ParDict.keys()):#Maximum length for the refined pDNCs
         MaxLen2 = int(ParDict['MaxLen2'])
     else:
         MaxLen2 = 7
-    print('Maximum length of refined pDNCs set as:', MaxLen2)
+    print('Maximum length of refined mDNCs set as:', MaxLen2)
     
     if 'Pdiff' in list(ParDict.keys()):#Percent difference
         Percent_difference = int(ParDict['Pdiff'])
@@ -450,7 +459,8 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
             threshold = 75####!changed value
     else:
         threshold = 75####!changed value
-    print(ParDict['Scoring'], 'scoring of the sDNCs; threshold in two consequtive runs:', threshold)
+    #print(ParDict['Scoring'], 'scoring of the rDNCs; threshold in two consequtive runs:', threshold)
+    print('scoring of the rDNCs; threshold in two consequtive runs:', threshold)
     
     ###################################################IMPLEMENTATION
     #Setting up a new class just for the convenient output formatting
@@ -465,7 +475,7 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
         g = open(ParDict['OUTPUT_FILE'], "w")#Initiating output file
     #VERYNEW
     print('<h4>########################## PARAMETERS ######################</h4>', file=g)
-    print("<p>", 'input file:', ParDict['INPUT_FILE'], "</p>", file=g) #VERYNEW
+    print("<p>", 'input file:', ParDict['ORIG_FNAME'], "</p>", file=g) #VERYNEW
     print("<p>", 'Coding gaps as characters:', gaps2D, "</p>", file=g)
     print("<p>", 'Maximum undetermined nucleotides allowed:', NumberN, "</p>", file=g)
     print("<p>", 'Length of the alignment:', FragmentLen, "</p>", file=g)    
@@ -473,11 +483,12 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
     print("<p>", 'query taxa:', len(qCLADEs), '-', str(qCLADEs).replace('[','').replace(']','').replace("'", ''), "</p>", file=g)#VERYNEW
     print("<p>", 'Cutoff set as:', Cutoff, "</p>", file=g)
     print("<p>", 'Number iterations of MolD set as:', N1, "</p>", file=g)
-    print("<p>", 'Maximum length of raw pDNCs set as:', MaxLen1, "</p>", file=g)
-    print("<p>", 'Maximum length of refined pDNCs set as:', MaxLen2, "</p>", file=g)
+    print("<p>", 'Maximum length of raw mDNCs set as:', MaxLen1, "</p>", file=g)
+    print("<p>", 'Maximum length of refined mDNCs set as:', MaxLen2, "</p>", file=g)
     print("<p>", 'simulated sequences up to', Percent_difference, 'percent divergent from original ones', "</p>", file=g)
     print("<p>", 'Maximum number of sequences modified per clade', Seq_per_clade_to_screw, "</p>", file=g)
-    print("<p>", ParDict['Scoring'], 'scoring of the sDNCs; threshold in two consequtive runs:', threshold, "</p>", file=g)
+    #print("<p>", ParDict['Scoring'], 'scoring of the rDNCs; threshold in two consequtive runs:', threshold, "</p>", file=g)
+    print("<p>", 'scoring of the rDNCs; threshold in two consequtive runs:', threshold, "</p>", file=g)
     print('<h4>########################### RESULTS ##########################</h4>', file=g)
     
     for qCLADE in qCLADEs:
@@ -489,8 +500,8 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
         print('Sequences analyzed:', len(clade_sorted_seqs[qCLADE]))
         print("<p>",'Sequences analyzed:', len(clade_sorted_seqs[qCLADE]), "</p>", file=g)
         ND_combinations = [[item] for item in pures] ####! before ND_combinations were initiated as an empty list
-        print('single nucleotide pDNCs:', len(pures), '-', str(SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in pures]}))[1:-1])#VERYNEW
-        print("<p>",'single nucleotide pDNCs:',len(pures), '-', str(SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in pures]}))[1:-1], "</p>", file=g)#VERYNEW
+        print('single nucleotide mDNCs:', len(pures), '-', str(SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in pures]}))[1:-1])#VERYNEW
+        print("<p>",'single nucleotide mDNCs:',len(pures), '-', str(SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in pures]}))[1:-1], "</p>", file=g)#VERYNEW
         N = 1 ####!
         while N > 0:#STEP3
             try:
@@ -507,25 +518,25 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
         try:
             Nind, KeyPos = IndependentKey(ND_combinations)#STEP4
         except IndexError:
-            print('no pDNCs recovered for', qCLADE)#VERYNEW
-            print("<p>", 'no pDNCs recovered for', "</p>", qCLADE, file=g)#VERYNEW
+            print('no mDNCs recovered for', qCLADE)#VERYNEW
+            print("<p>", 'no mDNCs recovered for', "</p>", qCLADE, file=g)#VERYNEW
             continue
         Allpos = []#Create list of all positions involved in pDNCs
         for comb in ND_combinations:
             for pos in comb:
                 if not pos in Allpos:
                     Allpos.append(pos)
-        print('pDNCs retrieved :', str(len(ND_combinations)) + '; Positions involved:', str(len(Allpos)) + '; Independent pDNCs:', len(Nind))#VERYNEW
-        print("<p>", 'pDNCs retrieved :', str(len(ND_combinations)) + '; Positions involved:', str(len(Allpos)) + '; Independent pDNCs:', len(Nind), "</p>", file=g)#VERYNEW
+        print('mDNCs retrieved :', str(len(ND_combinations)) + '; Positions involved:', str(len(Allpos)) + '; Independent mDNCs:', len(Nind))#VERYNEW
+        print("<p>", 'mDNCs retrieved :', str(len(ND_combinations)) + '; Positions involved:', str(len(Allpos)) + '; Independent mDNCs:', len(Nind), "</p>", file=g)#VERYNEW
         print('Shortest retrieved diagnostic combination:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in ND_combinations[0]]}))
         print("<p>",'Shortest retrieved diagnostic combination:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in ND_combinations[0]]}), "</p>", file=g)
-        ######################################################## sDNC output
-        Barcode_scores = []#Initiate a list for sDNC scores
+        ######################################################## rDNC output
+        Barcode_scores = []#Initiate a list for rDNC scores
         npos = len(ND_combinations[0])
         BestBarcode = 'none'####! newline
-        while npos <= min([10, len(Allpos)]):#in this loop the positions are added one-by-one to a sDNC and the sDNC is then rated on the artificially generated datasets
-            Barcode = GenerateBarcode_new(ND_combinations, npos)#Initiate a sDNC
-            Barcode_score = 0#Initiate a score to rate a sDNC
+        while npos <= min([10, len(Allpos)]):#in this loop the positions are added one-by-one to a rDNC and the rDNC is then rated on the artificially generated datasets
+            Barcode = GenerateBarcode_new(ND_combinations, npos)#Initiate a rDNC
+            Barcode_score = 0#Initiate a score to rate a rDNC
             N = 100
             while N > 0:
                 NComplist, NCPP = Screwed_dataset_new(raw_records, Seq_per_clade_to_screw, PosArrays, VarPosList, Percent_difference, qCLADE, Cutoff)#Create an artificial dataset VERYNEW
@@ -533,22 +544,22 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
                 if len(Barcode) - len(NBarcode) <= 1 and ConditionD(NBarcode, NComplist, NCPP) == True:####! new condition (first) added
                     Barcode_score +=1
                 N -=1
-            print(npos, 'sDNC_score (100):', [k+1 for k in Barcode], '-', Barcode_score)#VERYNEW
-            print("<p>", npos, 'sDNC_score (100):', [k+1 for k in Barcode], '-', Barcode_score, "</p>", file=g)#VERYNEW
+            print(npos, 'rDNC_score (100):', [k+1 for k in Barcode], '-', Barcode_score)#VERYNEW
+            print("<p>", npos, 'rDNC_score (100):', [k+1 for k in Barcode], '-', Barcode_score, "</p>", file=g)#VERYNEW
             if Barcode_score >= threshold and len(Barcode_scores) >= 1 and Barcode_score >= max(Barcode_scores): ####! newline
                 BestBarcode = Barcode####!newline
             Barcode_scores.append(Barcode_score)
-            if len(Barcode_scores) >= 2 and Barcode_scores[-1] >= threshold and Barcode_scores[-2] >= threshold:#Check whether the sDNC fulfills robustnes criteria 85:85:85
+            if len(Barcode_scores) >= 2 and Barcode_scores[-1] >= threshold and Barcode_scores[-2] >= threshold:#Check whether the rDNC fulfills robustnes criteria 85:85:85
                 print(BestBarcode)
-                print('final sDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]}))
-                print("<p>", 'final sDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]}), "</p>", file=g)
+                print('final rDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]}))
+                print("<p>", 'final rDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]}), "</p>", file=g)
                 break
             else:# VERY NEW FROM HERE ONWARDS
                 npos += 1
                 if npos > min([10, len(Allpos)]):
                     if BestBarcode != 'none':
-                        print('The highest scoring sDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]}))####!newline
-                        print("<p>", 'The highest scoring sDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]}), "</p>", file=g)####!newline
+                        print('The highest scoring rDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]}))####!newline
+                        print("<p>", 'The highest scoring rDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]}), "</p>", file=g)####!newline
                     else:
                         print('No sufficiently robust diagnosis was retrieved')
                         print("<p>", 'No sufficiently robust was retrieved', "</p>", file=g)

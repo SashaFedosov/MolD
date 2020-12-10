@@ -122,7 +122,7 @@ celery = make_celery(app)
 
 
 @celery.task
-def send_email_notification(email, status, parameters, taxalist):
+def send_email_notification(email, status, parameters, taxalist, orig_filename):
     print("Sending email")
     sender = MAILUSER
     taxa = ", ".join(taxalist)
@@ -144,6 +144,8 @@ def send_email_notification(email, status, parameters, taxalist):
     Results:
      {}
 
+    ***************
+
     <p>Citation: <b>Fedosov A.E.</b>, Achaz G., Puillandre N. 2019. Revisiting use of DNA characters in taxonomy with MolD – a tree independent algorithm to retrieve diagnostic nucleotide characters from monolocus datasets. BioRxiv, published online on 11.11.2019. DOI: 10.1101/838151 </p>
        </body>
 </html>
@@ -157,15 +159,14 @@ def send_email_notification(email, status, parameters, taxalist):
     text_attachment = f"""
 Results: 
 {plain_text_results}
+
 ***************
-Parameters:
-{parameters}
-***************
+
 Citation: Fedosov A.E., Achaz G., Puillandre N. 2019. Revisiting use of DNA characters in taxonomy with MolD – a tree independent algorithm to retrieve diagnostic nucleotide characters from monolocus datasets. BioRxiv, published online on 11.11.2019. DOI: 10.1101/838151
     """
     
     mail_attachment = MIMEText(text_attachment)
-    fname = f"MolD_results_{taxa1}.txt"
+    fname = f"{orig_filename}.results.txt"
     mail_attachment.add_header('Content-Disposition', 'attachment', filename=fname)
     msg.attach(mail_attachment)
     
@@ -180,10 +181,10 @@ Citation: Fedosov A.E., Achaz G., Puillandre N. 2019. Revisiting use of DNA char
 
 
 @celery.task
-def process_data(email, gapsaschars, taxalist, taxonrank, cutoff, numnucl, numiter, maxlenraw, maxlenrefined, pdiff, nmax, thresh, tmpfname):
+def process_data(email, gapsaschars, taxalist, taxonrank, cutoff, numnucl, numiter, maxlenraw, maxlenrefined, pdiff, nmax, thresh, tmpfname, orig_fname):
     print("Processing data")
-    # TODO FIX
-    results, qclades = mainprocessing(gapsaschars, taxalist, taxonrank, cutoff, numnucl, numiter, maxlenraw, maxlenrefined, pdiff, nmax, thresh, tmpfname)
+
+    results, qclades = mainprocessing(gapsaschars, taxalist, taxonrank, cutoff, numnucl, numiter, maxlenraw, maxlenrefined, pdiff, nmax, thresh, tmpfname, orig_fname)
 
     parameters = f"""
     List of focus taxa: {taxalist}
@@ -191,14 +192,14 @@ def process_data(email, gapsaschars, taxalist, taxonrank, cutoff, numnucl, numit
     Cutoff: {cutoff}
     NNNNN...: {numnucl}
     Num iterations: {numiter}
-    Max length for the raw pDNCs: {maxlenraw}
-    Max length for the refined pDNCs: {maxlenrefined}
+    Max length for the raw mDNCs: {maxlenraw}
+    Max length for the refined mDNCs: {maxlenrefined}
     Pdiff: {pdiff}
     NMaxSeq: {nmax}
-    Threshold of sDNC rating: {thresh}
+    Threshold of rDNC rating: {thresh}
     """
     
-    send_email_notification.delay(email, results, parameters, qclades)
+    send_email_notification.delay(email, results, parameters, qclades, orig_fname)
     
 @app.errorhandler(404)
 def not_found(error):
@@ -282,7 +283,7 @@ class DataAPI(Resource):
         tmp_upl_file = os.path.join(tmpdname, tmpfname)
         data_file.save(tmp_upl_file)
         app.logger.debug(tmp_upl_file)
-        process_data.delay(email, gapsaschars, taxalist, taxonrank, cutoff, numnucl, numiter, maxlenraw, maxlenrefined, pdiff, nmax, thresh, tmp_upl_file)
+        process_data.delay(email, gapsaschars, taxalist, taxonrank, cutoff, numnucl, numiter, maxlenraw, maxlenrefined, pdiff, nmax, thresh, tmp_upl_file, data_file.filename)
 
         return jsonify("OK"), 200
 
