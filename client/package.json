@@ -1,0 +1,27 @@
+{
+  "name": "mold_front",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build"
+  },
+  "dependencies": {
+    "axios": "^0.19.2",
+    "vue": "^2.6.10",
+    "vue-flash-message": "^0.7.2"
+  },
+  "devDependencies": {
+    "@vue/cli-service": "^3.0.5",
+    "vue-template-compiler": "^2.6.10"
+  },
+  "postcss": {
+    "plugins": {
+      "autoprefixer": {}
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions"
+  ]
+}
