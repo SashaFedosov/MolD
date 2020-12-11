@@ -128,19 +128,6 @@ def Diagnostic_combinations(qCLADE, complist, CPP, n1, maxlen1, maxlen2):
                 bestlists.append(sorted(refined_comb))
         n=n-1
     bestlists.sort(key=len)
-    #while n>0:#STEP3 proposes raw diagnostic combinations
-    #    m = step_reduction_complist(qCLADE, complist, CPP, Achecked_ind)
-    #    if len(m) < maxlen1 and sorted(m) not in bestlists:
-    #        bestlists.append(sorted(m))
-    #    n=n-1
-    #bestlists.sort(key=len)
-    #priority_lists = bestlists#VERYNEW
-    #diagnostic_combinations = []
-    #for raw_comb in priority_lists:
-    #    refined_comb = RemoveRedundantPositions(raw_comb, complist, CPP)
-    #    if not refined_comb in diagnostic_combinations and len(refined_comb) <= maxlen2:
-    #        diagnostic_combinations.append(refined_comb)
-    #diagnostic_combinations.sort(key=len)
     return bestlists
 
 #***STEP 4 ANALYSIS OF OUTPUT rDNCs
@@ -425,20 +412,6 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
         else:
             Percent_difference = 5
     print('simulated sequences up to', Percent_difference, 'percent divergent from original ones')
-    
-    #delete quoted block of code and corresponding field in the GUI    
-    """
-    if 'PrSeq' in list(ParDict.keys()):#Proportion of sequences in the dataset to be modified for the artificial dataset construction
-        P_to_screw = float(ParDict['PrSeq'])
-    else:
-        if Percent_difference == 1 and len(raw_records) < 500:
-            P_to_screw = 0.5####!changed value
-        elif Percent_difference == 1 and len(raw_records) >= 500:
-            P_to_screw = 0.25####!changed value
-        else:
-            P_to_screw = 0.1
-    print 'Proportion of modified sequences in artificial dataset', P_to_screw
-    """
     
     if 'NMaxSeq' in list(ParDict.keys()):#Maximum number of sequences per taxon to be modified
         Seq_per_clade_to_screw = int(ParDict['NMaxSeq'])
