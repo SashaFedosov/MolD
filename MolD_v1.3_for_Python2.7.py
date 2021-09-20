@@ -1,5 +1,5 @@
 """
-This script compiles sDNC-based DNA diagnoses for a pre-defined taxa in a dataset. This is the MAIN WORKING VERSION
+This script compiles rDNC-based DNA diagnoses for a pre-defined taxa in a dataset. This is the MAIN WORKING VERSION
 
 """
 import os, sys
@@ -129,7 +129,7 @@ def Diagnostic_combinations(qCLADE, complist, CPP, n1, maxlen1, maxlen2):
     bestlists.sort(key=len)
     return bestlists
 
-#***STEP 4 ANALYSIS OF OUTPUT sDNCs
+#***STEP 4 ANALYSIS OF OUTPUT rDNCs
 def IndependentKey(diagnostic_combinations):#PRESENTLY NOT INVOLVED - returns independent diagnostic nucleotide combinations, and identifies key nucleotide positions
     independent_combinations = []
     selected_positions = []
@@ -161,7 +161,7 @@ def IndependentKey(diagnostic_combinations):#PRESENTLY NOT INVOLVED - returns in
             key_positions.append(pos)
     return independent_combinations, key_positions
 
-#SPECIFIC FUNCTIONS FOR THE sDNCs
+#SPECIFIC FUNCTIONS FOR THE rDNCs
 def PositionArrays(Motifs):#VERYNEW ALL FUNCTION NEW
     PositionArrays = []
     VarPosList = []
@@ -371,17 +371,17 @@ def main():
         N1 = 10000
     print 'Number iterations of MolD set as:', N1
     
-    if 'MaxLen1' in list(ParDict.keys()):#Maximum length for the raw pDNCs
+    if 'MaxLen1' in list(ParDict.keys()):#Maximum length for the raw mDNCs
         MaxLen1 = int(ParDict['MaxLen1'])
     else:
         MaxLen1 = 12
-    print 'Maximum length of raw pDNCs set as:', MaxLen1
+    print 'Maximum length of raw mDNCs set as:', MaxLen1
     
-    if 'MaxLen2' in list(ParDict.keys()):#Maximum length for the refined pDNCs
+    if 'MaxLen2' in list(ParDict.keys()):#Maximum length for the refined mDNCs
         MaxLen2 = int(ParDict['MaxLen2'])
     else:
         MaxLen2 = 7
-    print 'Maximum length of refined pDNCs set as:', MaxLen2
+    print 'Maximum length of refined mDNCs set as:', MaxLen2
     
     if 'Pdiff' in list(ParDict.keys()):#Percent difference
         Percent_difference = int(ParDict['Pdiff'])
@@ -412,7 +412,7 @@ def main():
             threshold = 75####!changed value
     else:
         threshold = 75####!changed value
-    print ParDict['Scoring'], 'scoring of the sDNCs; threshold in two consequtive runs:', threshold
+    print ParDict['Scoring'], 'scoring of the rDNCs; threshold in two consequtive runs:', threshold
     
     ###################################################IMPLEMENTATION
     #Setting up a new class just for the convenient output formatting
@@ -432,11 +432,11 @@ def main():
     print >>g, 'query taxa:', len(qCLADEs), '-', str(sorted(qCLADEs)).replace('[','').replace(']','').replace("'", '')#1.3
     print >>g, 'Cutoff set as:', Cutoff
     print >>g, 'Number iterations of MolD set as:', N1
-    print >>g, 'Maximum length of raw pDNCs set as:', MaxLen1
-    print >>g, 'Maximum length of refined pDNCs set as:', MaxLen2
+    print >>g, 'Maximum length of raw mDNCs set as:', MaxLen1
+    print >>g, 'Maximum length of refined mDNCs set as:', MaxLen2
     print >>g, 'simulated sequences up to', Percent_difference, 'percent divergent from original ones'
     print >>g, 'Maximum number of sequences modified per clade', Seq_per_clade_to_screw
-    print >>g, ParDict['Scoring'], 'scoring of the sDNCs; threshold in two consequtive runs:', threshold
+    print >>g, ParDict['Scoring'], 'scoring of the rDNCs; threshold in two consequtive runs:', threshold
     print >>g, '\n########################### RESULTS ##########################'
     
     for qCLADE in sorted(qCLADEs):#1.3
@@ -448,8 +448,8 @@ def main():
         print 'Sequences analyzed:', len(clade_sorted_seqs[qCLADE])
         print >>g, 'Sequences analyzed:', len(clade_sorted_seqs[qCLADE])
         ND_combinations = [[item] for item in pures] ####! before ND_combinations were initiated as an empty list
-        print 'single nucleotide pDNCs:', len(pures), '-', str(SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in pures]}))[1:-1]#VERYNEW
-        print >>g, 'single nucleotide pDNCs:',len(pures), '-', str(SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in pures]}))[1:-1]#VERYNEW
+        print 'single nucleotide mDNCs:', len(pures), '-', str(SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in pures]}))[1:-1]#VERYNEW
+        print >>g, 'single nucleotide mDNCs:',len(pures), '-', str(SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in pures]}))[1:-1]#VERYNEW
         N = 1 ####!
         while N > 0:#STEP3
             try:
@@ -462,29 +462,29 @@ def main():
                     ND_combinations.append(comb)
             N-=1
         ND_combinations.sort(key=len)
-        #################################### pDNC output
+        #################################### mDNC output
         try:
             Nind, KeyPos = IndependentKey(ND_combinations)#STEP4
         except IndexError:
-            print 'no pDNCs recovered for', qCLADE#VERYNEW
-            print >>g, 'no pDNCs recovered for', qCLADE#VERYNEW
+            print 'no mDNCs recovered for', qCLADE#VERYNEW
+            print >>g, 'no mDNCs recovered for', qCLADE#VERYNEW
             continue
-        Allpos = []#Create list of all positions involved in pDNCs
+        Allpos = []#Create list of all positions involved in mDNCs
         for comb in ND_combinations:
             for pos in comb:
                 if not pos in Allpos:
                     Allpos.append(pos)
-        print 'pDNCs retrieved :', str(len(ND_combinations)) + '; Positions involved:', str(len(Allpos)) + '; Independent pDNCs:', len(Nind)#VERYNEW
-        print >>g, 'pDNCs retrieved :', str(len(ND_combinations)) + '; Positions involved:', str(len(Allpos)) + '; Independent pDNCs:', len(Nind)#VERYNEW
+        print 'mDNCs retrieved :', str(len(ND_combinations)) + '; Positions involved:', str(len(Allpos)) + '; Independent mDNCs:', len(Nind)#VERYNEW
+        print >>g, 'mDNCs retrieved :', str(len(ND_combinations)) + '; Positions involved:', str(len(Allpos)) + '; Independent mDNCs:', len(Nind)#VERYNEW
         print 'Shortest retrieved diagnostic combination:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in ND_combinations[0]]})
         print >>g, 'Shortest retrieved diagnostic combination:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in ND_combinations[0]]})
-        ######################################################## sDNC output
-        Barcode_scores = []#Initiate a list for sDNC scores
+        ######################################################## rDNC output
+        Barcode_scores = []#Initiate a list for rDNC scores
         npos = len(ND_combinations[0])
         BestBarcode = 'none'####! newline
-        while npos <= min([10, len(Allpos)]):#in this loop the positions are added one-by-one to a sDNC and the sDNC is then rated on the artificially generated datasets
-            Barcode = GenerateBarcode_new(ND_combinations, npos)#Initiate a sDNC
-            Barcode_score = 0#Initiate a score to rate a sDNC
+        while npos <= min([10, len(Allpos)]):#in this loop the positions are added one-by-one to a rDNC and the rDNC is then rated on the artificially generated datasets
+            Barcode = GenerateBarcode_new(ND_combinations, npos)#Initiate a rDNC
+            Barcode_score = 0#Initiate a score to rate a rDNC
             N = 100
             while N > 0:
                 NComplist, NCPP = Screwed_dataset_new(raw_records, Seq_per_clade_to_screw, PosArrays, VarPosList, Percent_difference, qCLADE, Cutoff)#Create an artificial dataset VERYNEW
@@ -492,23 +492,23 @@ def main():
                 if len(Barcode) - len(NBarcode) <= 1 and ConditionD(NBarcode, NComplist, NCPP) == True:####! new condition (first) added
                     Barcode_score +=1
                 N -=1
-            print npos, 'sDNC_score (100):', [k+1 for k in Barcode], '-', Barcode_score#VERYNEW
-            print >>g, npos, 'sDNC_score (100):', [k+1 for k in Barcode], '-', Barcode_score#VERYNEW
+            print npos, 'rDNC_score (100):', [k+1 for k in Barcode], '-', Barcode_score#VERYNEW
+            print >>g, npos, 'rDNC_score (100):', [k+1 for k in Barcode], '-', Barcode_score#VERYNEW
             if Barcode_score >= threshold and len(Barcode_scores) == 1: ###1.3
                 BestBarcode = Barcode###1.3
             if Barcode_score >= threshold and len(Barcode_scores) > 1 and Barcode_score >= max(Barcode_scores): ####! newline
                 BestBarcode = Barcode####!newline
             Barcode_scores.append(Barcode_score)
-            if len(Barcode_scores) >= 2 and Barcode_scores[-1] >= threshold and Barcode_scores[-2] >= threshold:#Check whether the sDNC fulfills robustnes criteria 85:85:85
-                print 'final sDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]})
-                print >>g, 'final sDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]})
+            if len(Barcode_scores) >= 2 and Barcode_scores[-1] >= threshold and Barcode_scores[-2] >= threshold:#Check whether the rDNC fulfills robustnes criteria 85:85:85
+                print 'final rDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]})
+                print >>g, 'final rDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]})
                 break
             else:# VERY NEW FROM HERE ONWARDS
                 npos += 1
                 if npos > min([10, len(Allpos)]):
                     if BestBarcode != 'none':
-                        print 'The highest scoring sDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]})####!newline
-                        print >>g, 'The highest scoring sDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]})####!newline
+                        print 'The highest scoring rDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]})####!newline
+                        print >>g, 'The highest scoring rDNC:', SortedDisplayDict({pos : y[pos-1] for pos in [i+1 for i in BestBarcode]})####!newline
                     else:
                         print 'No sufficiently robust diagnosis was retrieved'
                         print >>g, 'No sufficiently robust was retrieved'
