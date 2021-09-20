@@ -300,7 +300,7 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
         ParDict['qTAXA'] = taxalist
         ParDict['Taxon_rank'] = taxonrank
         ParDict['INPUT_FILE'] = tmpfname
-        ParDict['ORIG_FNAME'] = origfname
+        ParDict['ORIG_FNAME'] = origfname# throws error if run with command line
         ParDict['Cutoff'] = cutoff
         ParDict['NumberN'] = numnucl
         ParDict['Number_of_iterations'] = numiter
@@ -354,7 +354,8 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
         if i[2].count('N') < NumberN and len(i[2]) == FragmentLen:
             raw_records.append(i)
     print('\n########################## PARAMETERS ######################\n')#VERYNEW
-    print('input file:', ParDict['ORIG_FNAME']) #VERYNEW
+    #print('input file:', ParDict['ORIG_FNAME']) # throws error if run with command line
+    print('input file:', ParDict['INPUT_FILE']) # replacement of the line above
     print('Coding gaps as characters:', gaps2D)
     print('Maximum undetermined nucleotides allowed:', NumberN)
     print('Length of the alignment:', FragmentLen)    
@@ -363,7 +364,7 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
     PosArrays, VarPosList = PositionArrays([i[2] for i in raw_records])#VERYNEW
    
     #############################################READ IN OTHER ANALYSIS PARAMETERS
-    print(ParDict['qTAXA'][0])
+    #print(ParDict['qTAXA'][0])# not necessary
     if ParDict['qTAXA'] in ['ALL', 'All', 'all']:#qTAXA
         qCLADEs = []
         for i in raw_records:
@@ -379,7 +380,7 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
                 qCLADEs.append(j)
     else:
         qCLADEs = ParDict['qTAXA'].split(',')
-    print('query taxa:', len(qCLADEs), '-', str(qCLADEs).replace('[','').replace(']','').replace("'", ''))#VERYNEW
+    print('query taxa:', len(qCLADEs), '-', str(sorted(qCLADEs)).replace('[','').replace(']','').replace("'", ''))#1.3
     
     if 'Cutoff' in list(ParDict.keys()):#CUTOFF Number of the informative positions to be considered, default 100
         Cutoff = ParDict['Cutoff']#VERYNEW
@@ -392,13 +393,13 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
         N1 = 10000
     print('Number iterations of MolD set as:', N1)
     
-    if 'MaxLen1' in list(ParDict.keys()):#Maximum length for the raw pDNCs
+    if 'MaxLen1' in list(ParDict.keys()):#Maximum length for the raw mDNCs
         MaxLen1 = int(ParDict['MaxLen1'])
     else:
         MaxLen1 = 12
     print('Maximum length of raw mDNCs set as:', MaxLen1)
     
-    if 'MaxLen2' in list(ParDict.keys()):#Maximum length for the refined pDNCs
+    if 'MaxLen2' in list(ParDict.keys()):#Maximum length for the refined mDNCs
         MaxLen2 = int(ParDict['MaxLen2'])
     else:
         MaxLen2 = 7
@@ -448,12 +449,13 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
         g = open(ParDict['OUTPUT_FILE'], "w")#Initiating output file
     #VERYNEW
     print('<h4>########################## PARAMETERS ######################</h4>', file=g)
-    print("<p>", 'input file:', ParDict['ORIG_FNAME'], "</p>", file=g) #VERYNEW
+    print("<p>", 'input file:', ParDict['ORIG_FNAME'], "</p>", file=g) # throws error if run with command line
+    print("<p>", 'input file:', ParDict['INPUT_FILE'], "</p>", file=g) # replacement of the line above
     print("<p>", 'Coding gaps as characters:', gaps2D, "</p>", file=g)
     print("<p>", 'Maximum undetermined nucleotides allowed:', NumberN, "</p>", file=g)
     print("<p>", 'Length of the alignment:', FragmentLen, "</p>", file=g)    
     print("<p>", 'Read in', len(raw_records), 'sequences', "</p>", file=g)
-    print("<p>", 'query taxa:', len(qCLADEs), '-', str(qCLADEs).replace('[','').replace(']','').replace("'", ''), "</p>", file=g)#VERYNEW
+    print("<p>", 'query taxa:', len(qCLADEs), '-', str(sorted(qCLADEs)).replace('[','').replace(']','').replace("'", ''), "</p>", file=g)#1.3
     print("<p>", 'Cutoff set as:', Cutoff, "</p>", file=g)
     print("<p>", 'Number iterations of MolD set as:', N1, "</p>", file=g)
     print("<p>", 'Maximum length of raw mDNCs set as:', MaxLen1, "</p>", file=g)
@@ -464,7 +466,7 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
     print("<p>", 'scoring of the rDNCs; threshold in two consequtive runs:', threshold, "</p>", file=g)
     print('<h4>########################### RESULTS ##########################</h4>', file=g)
     
-    for qCLADE in qCLADEs:
+    for qCLADE in sorted(qCLADEs):#1.3
         print('\n**************', qCLADE, '**************')
         print('<h4>**************', qCLADE, '**************</h4>', file=g)
         Clades, clade_sorted_seqs, shared_positions = Step1(raw_records)#STEP1
@@ -487,14 +489,14 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
                     ND_combinations.append(comb)
             N-=1
         ND_combinations.sort(key=len)
-        #################################### pDNC output
+        #################################### mDNC output
         try:
             Nind, KeyPos = IndependentKey(ND_combinations)#STEP4
         except IndexError:
             print('no mDNCs recovered for', qCLADE)#VERYNEW
             print("<p>", 'no mDNCs recovered for', "</p>", qCLADE, file=g)#VERYNEW
             continue
-        Allpos = []#Create list of all positions involved in pDNCs
+        Allpos = []#Create list of all positions involved in mDNCs
         for comb in ND_combinations:
             for pos in comb:
                 if not pos in Allpos:
@@ -519,7 +521,9 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
                 N -=1
             print(npos, 'rDNC_score (100):', [k+1 for k in Barcode], '-', Barcode_score)#VERYNEW
             print("<p>", npos, 'rDNC_score (100):', [k+1 for k in Barcode], '-', Barcode_score, "</p>", file=g)#VERYNEW
-            if Barcode_score >= threshold and len(Barcode_scores) >= 1 and Barcode_score >= max(Barcode_scores): ####! newline
+            if Barcode_score >= threshold and len(Barcode_scores) == 1: ###1.3
+                BestBarcode = Barcode###1.3
+            if Barcode_score >= threshold and len(Barcode_scores) > 1 and Barcode_score >= max(Barcode_scores): ###1.3
                 BestBarcode = Barcode####!newline
             Barcode_scores.append(Barcode_score)
             if len(Barcode_scores) >= 2 and Barcode_scores[-1] >= threshold and Barcode_scores[-2] >= threshold:#Check whether the rDNC fulfills robustnes criteria 85:85:85
