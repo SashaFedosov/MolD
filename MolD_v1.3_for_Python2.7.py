@@ -358,7 +358,7 @@ def main():
                 qCLADEs.append(j)
     else:
         qCLADEs = ParDict['qTAXA'].split(',')
-    print 'query taxa:', len(qCLADEs), '-', str(qCLADEs).replace('[','').replace(']','').replace("'", '')#VERYNEW
+    print 'query taxa:', len(qCLADEs), '-', str(sorted(qCLADEs)).replace('[','').replace(']','').replace("'", '')#1.3
     
     if 'Cutoff' in list(ParDict.keys()):#CUTOFF Number of the informative positions to be considered, default 100
         Cutoff = ParDict['Cutoff']#VERYNEW
@@ -429,7 +429,7 @@ def main():
     print >>g, 'Maximum undetermined nucleotides allowed:', NumberN
     print >>g, 'Length of the alignment:', FragmentLen    
     print >>g, 'Read in', len(raw_records), 'sequences'
-    print >>g, 'query taxa:', len(qCLADEs), '-', str(qCLADEs).replace('[','').replace(']','').replace("'", '')#VERYNEW
+    print >>g, 'query taxa:', len(qCLADEs), '-', str(sorted(qCLADEs)).replace('[','').replace(']','').replace("'", '')#1.3
     print >>g, 'Cutoff set as:', Cutoff
     print >>g, 'Number iterations of MolD set as:', N1
     print >>g, 'Maximum length of raw pDNCs set as:', MaxLen1
@@ -439,7 +439,7 @@ def main():
     print >>g, ParDict['Scoring'], 'scoring of the sDNCs; threshold in two consequtive runs:', threshold
     print >>g, '\n########################### RESULTS ##########################'
     
-    for qCLADE in qCLADEs:
+    for qCLADE in sorted(qCLADEs):#1.3
         print '\n**************', qCLADE, '**************'
         print >>g, '\n**************', qCLADE, '**************'
         Clades, clade_sorted_seqs, shared_positions = Step1(raw_records)#STEP1
@@ -494,7 +494,9 @@ def main():
                 N -=1
             print npos, 'sDNC_score (100):', [k+1 for k in Barcode], '-', Barcode_score#VERYNEW
             print >>g, npos, 'sDNC_score (100):', [k+1 for k in Barcode], '-', Barcode_score#VERYNEW
-            if Barcode_score >= threshold and len(Barcode_scores) >= 1 and Barcode_score >= max(Barcode_scores): ####! newline
+            if Barcode_score >= threshold and len(Barcode_scores) == 1: ###1.3
+                BestBarcode = Barcode###1.3
+            if Barcode_score >= threshold and len(Barcode_scores) > 1 and Barcode_score >= max(Barcode_scores): ####! newline
                 BestBarcode = Barcode####!newline
             Barcode_scores.append(Barcode_score)
             if len(Barcode_scores) >= 2 and Barcode_scores[-1] >= threshold and Barcode_scores[-2] >= threshold:#Check whether the sDNC fulfills robustnes criteria 85:85:85
