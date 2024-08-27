@@ -1,5 +1,5 @@
 """
-This script compiles rDNC-based DNA diagnoses for a pre-defined taxa in a dataset. This is the MAIN WORKING VERSION v1.4
+This script compiles rDNC-based DNA diagnoses for a pre-defined taxa in a dataset. This is the MAIN WORKING VERSION v1.4.2 including latest bug fixes as of July 2024.
 This version already implements the new functionalities:
 - automatic trimming of the alignment to match the median sequence length (should seq len distribution and provided NumberN settings require that)
 - expanded qCLADEs setting
