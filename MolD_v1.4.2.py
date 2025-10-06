@@ -283,7 +283,7 @@ def Screwed_dataset_new(raw_records, nseq_per_clade_to_screw, PositionArrays, Va
     return x, y
 
 #NEWFUNCYIONS
-def medianSeqLen(listofseqs):#OCT2022
+def medianSeqLen(listofseqs):#OCT2022 latest fix in the function OCT2025
     seqlens = [i.count('A')+i.count('C')+i.count('G')+i.count('T') for i in listofseqs]
     medlen = sorted(seqlens)[int(len(seqlens)/2)]
     medseq = listofseqs[seqlens.index(medlen)]
@@ -291,8 +291,8 @@ def medianSeqLen(listofseqs):#OCT2022
     if not 'N' in medseq[start:]:
         end = len(medseq)
     else:
-        for i in range(start, len(medseq), 1):
-            if medseq[i:].count('N') == len(medseq[i:]):
+        for i in range(len(medseq)-1, -1, -1):
+            if medseq[i] in 'ACGT':
                 end = i
                 break
     return medlen, start, end
@@ -738,3 +738,4 @@ def mainprocessing(gapsaschars=None, taxalist=None, taxonrank=None, cutoff=None,
 if __name__ == "__main__":
     c, q = mainprocessing()
   
+
